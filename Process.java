@@ -5,6 +5,7 @@ public class Process {
     int priority;
     int waitingTime = 0;
     int turnaroundTime = 0;
+    int memoryStartAddress = -1;
 
     public Process(int pid, int arrivalTime, int burstTime, int priority) {
         this.pid = pid;

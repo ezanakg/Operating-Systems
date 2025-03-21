@@ -1,0 +1,11 @@
+class MemoryBlock {
+    int startAddress;
+    int size;
+    boolean isFree;
+
+    public MemoryBlock(int startAddress, int size) {
+        this.startAddress = startAddress;
+        this.size = size;
+        this.isFree = true;
+    }
+}

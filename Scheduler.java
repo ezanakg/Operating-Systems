@@ -36,17 +36,29 @@ public class Scheduler {
         AtomicInteger time = new AtomicInteger(0);
         List<Integer> gantt = new ArrayList<>();
         List<String> labels = new ArrayList<>();
+        MemoryManager mm = new MemoryManager(100);
+        PageTable pt = new PageTable(3);
 
         for (Process p : processes) {
+            if (!mm.allocate(p, p.burstTime * 2)) continue;
+
             if (time.get() < p.arrivalTime) {
                 time.set(p.arrivalTime);
             }
+
+            // Simulate paging: assume one page accessed per unit of burst
+            for (int i = 0; i < p.burstTime; i++) {
+                pt.accessPage(new Page(p.pid, i));
+            }
+
             p.waitingTime = time.get() - p.arrivalTime;
             time.addAndGet(p.burstTime);
             p.turnaroundTime = p.waitingTime + p.burstTime;
 
             labels.add("P" + p.pid);
             gantt.add(time.get());
+
+            mm.free(p);
         }
 
         printResults(processes, labels, gantt);
@@ -57,6 +69,8 @@ public class Scheduler {
         AtomicInteger time = new AtomicInteger(0);
         List<Integer> gantt = new ArrayList<>();
         List<String> labels = new ArrayList<>();
+        MemoryManager mm = new MemoryManager(100);
+        PageTable pt = new PageTable(3);
 
         while (!processes.isEmpty()) {
             Process next = processes.stream()
@@ -69,6 +83,16 @@ public class Scheduler {
                 continue;
             }
 
+            if (!mm.allocate(next, next.burstTime * 2)) {
+                processes.remove(next);
+                continue;
+            }
+
+            // Simulate paging: assume one page accessed per unit of burst
+            for (int i = 0; i < next.burstTime; i++) {
+                pt.accessPage(new Page(next.pid, i));
+            }
+
             processes.remove(next);
             next.waitingTime = time.get() - next.arrivalTime;
             time.addAndGet(next.burstTime);
@@ -77,13 +101,14 @@ public class Scheduler {
 
             labels.add("P" + next.pid);
             gantt.add(time.get());
+
+            mm.free(next);
         }
 
         printResults(completed, labels, gantt);
     }
 
     public static void printResults(List<Process> processes, List<String> labels, List<Integer> gantt) {
-        // Gantt chart
         System.out.print("Gantt Chart:\n| ");
         for (String label : labels) System.out.print(label + " | ");
         System.out.println();
@@ -92,7 +117,6 @@ public class Scheduler {
         for (int t : gantt) System.out.print(String.format("%4d", t));
         System.out.println("\n");
 
-        // Table output
         double totalWT = 0, totalTAT = 0;
         System.out.println("PID\tWT\tTAT");
         for (Process p : processes) {
@@ -103,21 +127,5 @@ public class Scheduler {
 
         System.out.printf("\nAverage WT: %.2f\n", totalWT / processes.size());
         System.out.printf("Average TAT: %.2f\n", totalTAT / processes.size());
-    }
-}
-
-class Process {
-    int pid;
-    int arrivalTime;
-    int burstTime;
-    int priority;
-    int waitingTime = 0;
-    int turnaroundTime = 0;
-
-    public Process(int pid, int arrivalTime, int burstTime, int priority) {
-        this.pid = pid;
-        this.arrivalTime = arrivalTime;
-        this.burstTime = burstTime;
-        this.priority = priority;
     }
 }
